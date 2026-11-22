@@ -1,6 +1,6 @@
 # Row Level Security (RLS) Policy Matrix
 
-**Status:** Draft for approval · **Version:** 0.1 · **Date:** 20 November 2026
+**Status:** Draft for approval · **Version:** 0.2 · **Date:** 22 November 2026
 
 ## 1. Principles
 
@@ -49,7 +49,11 @@ language sql stable security definer set search_path = public, pg_temp as $$
     join public.role_permissions rp on rp.role_id = ur.role_id
     join public.permissions perm on perm.id = rp.permission_id
     join public.profiles p on p.id = ur.user_id
-    where ur.user_id = auth.uid() and perm.key = permission_key and p.is_active
+    join public.staff_profiles sp on sp.profile_id = ur.user_id
+    where ur.user_id = auth.uid()
+      and perm.key = permission_key
+      and p.is_active
+      and sp.employment_status = 'active'
   );
 $$;
 
@@ -187,7 +191,7 @@ Legend: **PUB** published/active rows only; **OWN** own linked rows; **PERM** pe
 | `report-exports` | No | Server job only | Requester, manager, accountant; expiring URL |
 | `staff-documents` | No | `staff.manage` | `staff.read_hr`, self |
 
-Policies are path-prefixed by hotel, entity type and UUID. Guests never list a bucket; the server issues a signed URL after verifying ownership. Uploads are restricted to MIME types (`image/jpeg`, `image/png`, `application/pdf`) and size limits; filenames are randomised.
+Policies are path-prefixed by hotel, entity type and UUID. Guests never list a bucket; the server issues a signed URL after verifying ownership. Uploads are restricted to MIME types (`image/jpeg`, `image/png`, `application/pdf`) and size limits; filenames are randomised. Storage helpers are `security definer` with pinned `search_path`; published room images are checked through `private.storage_room_is_public()` so anon/RLS restrictions on `public.rooms` cannot suppress public image access. `supabase/tests/storage.sql` passes 15 pgTAP assertions.
 
 ## 6. RPC execution matrix
 
@@ -204,10 +208,13 @@ Policies are path-prefixed by hotel, entity type and UUID. Guests never list a b
 | `verify_bank_transfer` | — | — | — | — | ✓ | ✓ | — |
 | `confirm_paystack_payment` | — | — | — | — | server | server | — |
 | `refund_payment` | — | request | — | — | ✓ | ✓ | — |
-| `transition_service_order` | — | — | dept | — | ✓ | — | — |
-| `record_inventory_movement` | — | — | authorised dept | — | ✓ | ✓ adjust | — |
+| `create_service_order`, `transition_service_order` | — | OWN | dept | — | ✓ | — | — |
+| `create_laundry_order`, `cancel_laundry_order`, `deliver_laundry_order` | — | OWN | dept | ✓ | ✓ | RO totals | — |
+| `record_inventory_movement`, `record_stock_usage`, `transfer_stock` | — | — | authorised dept | — | ✓ | ✓ adjust | — |
+| `receive_stock_purchase`, `request_stock_adjustment`, `approve_stock_adjustment` | — | — | — | — | ✓ | ✓ adjust | — |
 | `clock_in`, `clock_out` | — | — | self | self | self | self | self |
-| `create_handover`, `acknowledge_handover` | — | — | — | ✓ | ✓ | ✓ | — |
+| `mark_attendance_exception`, `adjust_attendance` | — | — | — | DEPT | ✓ | RO | — |
+| `create_shift_handover`, `submit_shift_handover`, `acknowledge_shift_handover` | — | — | — | ✓ | ✓ | ✓ | — |
 | `approve_expense` | — | — | — | — | ✓ | ✓ | — |
 | `guest_*` RPCs | — | own | — | — | — | — | — |
 

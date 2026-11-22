@@ -1,6 +1,6 @@
 # Testing Strategy
 
-**Status:** Draft for approval · **Version:** 0.1 · **Date:** 20 November 2026
+**Status:** Draft for approval · **Version:** 0.2 · **Date:** 22 November 2026
 
 ## 1. Objectives
 
@@ -70,6 +70,8 @@
 10. **Attendance:** second open record blocked; clock-out before clock-in rejected.
 11. **RLS:** every table × role allow/deny; guest cross-tenant; deactivated staff; submitter ≠ verifier; housekeeping can't read contacts; kitchen can't read payments; owner cannot write without grant.
 12. **Storage:** guest cannot read another guest's receipt/evidence; signed URL expiry.
+
+Current remote pgTAP evidence: `supabase/tests/rls.sql` passes 32 assertions, `supabase/tests/storage.sql` passes 15 assertions, and `supabase/tests/concurrency.sql` passes 14 assertions for contested-room exclusion, bill-item/payment/stock replay, overpayment rejection and negative-stock override. Migrations `0001`–`0017` were also replayed from scratch on a temporary Supabase project and all three suites passed there. Local pgTAP execution requires Docker/Podman; remote verification uses `npx supabase db query --remote --yes --file supabase/tests/<suite>.sql`.
 
 ## 6. Integration tests
 

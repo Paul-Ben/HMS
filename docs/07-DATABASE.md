@@ -1,6 +1,6 @@
 # Database Design
 
-**Status:** Draft for approval · **Version:** 0.1 · **Date:** 20 November 2026
+**Status:** Draft for approval · **Version:** 0.2 · **Date:** 22 November 2026
 **Engine:** PostgreSQL 15+ (Supabase) · **Extensions:** `pgcrypto`, `btree_gist`, `pg_trgm`, `citext`, `pg_cron` where available.
 
 ## 1. Conventions
@@ -268,7 +268,7 @@ CREATE UNIQUE INDEX one_primary_guest_per_reservation
 ALTER TABLE payments ADD CONSTRAINT payment_amount_positive CHECK (amount > 0);
 ALTER TABLE refunds ADD CONSTRAINT refund_amount_positive CHECK (amount > 0);
 ALTER TABLE bill_items ADD CONSTRAINT bill_item_qty_positive CHECK (quantity > 0);
-ALTER TABLE inventory_items ADD CONSTRAINT stock_non_negative CHECK (current_stock >= 0);
+-- Enforced by private.guard_inventory_stock(); negative stock requires an authorised override.
 ALTER TABLE financial_transaction_lines
   ADD CONSTRAINT one_side_only CHECK (
     (debit IS NOT NULL AND credit IS NULL AND debit > 0)
@@ -349,12 +349,18 @@ All are `STABLE`/`IMMUTABLE` as appropriate and use `auth.uid()` only.
 | `verify_bank_transfer(payment_id, decision, notes)` | Approve/reject; ledger only on approval; notification. |
 | `confirm_paystack_payment(...)` | Idempotent successful payment, allocation, ledger, receipt. |
 | `refund_payment(payment_id, amount, reason)` | Approval and cap checks, reversal ledger, provider refund. |
+| `create_service_order(...)` | Idempotent restaurant/bar order creation; folio and department validation. |
 | `transition_service_order(order_id, to_status)` | Allowed transition matrix, timestamps, history, idempotent stock trigger. |
 | `deduct_order_stock(order_id)` | Exactly-once recipe/bar/laundry deductions with movement idempotency keys. |
-| `record_inventory_movement(...)` | Append-only stock change, previous/new stock, low-stock alert, valuation. |
-| `receive_purchase(...)` | Purchase + lines + movements atomically. |
+| `create_laundry_order(...)`, `cancel_laundry_order(...)`, `deliver_laundry_order(...)` | Laundry state machine, folio billing and supply usage rules. |
+| `private.post_stock_movement(...)` | Append-only stock change, previous/new stock, low-stock alert, valuation, override guard. |
+| `record_inventory_movement(...)` | Public wrapper for authorised stock movement recording. |
+| `receive_stock_purchase(...)` | Purchase + lines + movements atomically. |
+| `request_stock_adjustment(...)`, `approve_stock_adjustment(...)` | Segregated adjustment workflow with reason and approval. |
+| `record_stock_usage(...)`, `transfer_stock(...)`, `acknowledge_stock_alert(...)` | Manual usage, location transfer and alert acknowledgement. |
 | `clock_in()`, `clock_out()` | Assignment validation, one open record, late/early minutes. |
-| `create_handover(...)`, `acknowledge_handover(...)` | Snapshot, lock after acknowledgement, addenda. |
+| `mark_attendance_exception(...)`, `adjust_attendance(...)` | Manager-controlled attendance corrections with reason. |
+| `create_shift_handover(...)`, `submit_shift_handover(...)`, `acknowledge_shift_handover(...)` | Snapshot, submission, acknowledgement and lock after acknowledgement. |
 | `approve_expense(...)` | Segregation of duties, ledger posting, audit. |
 | `post_journal(...)` | Balanced lines, idempotent, immutable. |
 | `allocate_reference(scope)` | Atomic human-readable reference allocation. |
@@ -404,6 +410,8 @@ Materialised views: `mv_daily_revenue`, `mv_daily_occupancy` refreshed every 15 
 - Permission-based policy checks require an active staff profile; guest-role permission keys cannot grant staff-level row access.
 - Service role bypasses RLS but is used only in server code and jobs.
 - Policies are documented in `docs/08-RLS-MATRIX.md`; `supabase/tests/rls.sql` passes 32 pgTAP assertions via `npm run test:db`.
+- Storage object policies are path-prefixed by `hotel_id`, entity type and entity UUID; `supabase/tests/storage.sql` passes 15 pgTAP assertions.
+- Idempotency, retry guards and contested-room exclusion are covered by `supabase/tests/concurrency.sql` with 14 pgTAP assertions.
 
 ## 9. Deletion and retention rules
 
@@ -442,7 +450,7 @@ FK rules: financial parents use `RESTRICT`; dependent draft children may cascade
 | `0015_seed` | roles, permissions, hotel, settings, chart of accounts, reference catalogs. |
 | `0016_dev_seed` | **development only** demo guests, reservations, orders; never applied to production. |
 
-Applied dev migrations: `0001_extensions`, `0002_enums`, `0003_identity_hotel`, `0004_rooms_housekeeping`, `0005_reservations`, `0006_billing`, `0007_fnb_laundry_inventory`, `0008_staff_ops`, `0009_reporting_views`, `0010_baseline_seed`, `0011_rls`, `0012_rls_staff_permission_fix`. Actual numbering and scope supersede the provisional plan above.
+Applied dev migrations: `0001_extensions`, `0002_enums`, `0003_identity_hotel`, `0004_rooms_housekeeping`, `0005_reservations`, `0006_billing`, `0007_fnb_laundry_inventory`, `0008_staff_ops`, `0009_reporting_views`, `0010_baseline_seed`, `0011_rls`, `0012_rls_staff_permission_fix`, `0013_core_rpcs_billing`, `0014_core_rpc_fixes`, `0015_operational_rpcs`, `0016_inventory_staff_rpcs`, `0017_storage_policies`. `0013` is superseded by `0014`; both remain applied as forward-only history. Actual numbering and scope supersede the provisional plan above; `supabase migration list --remote` shows `0001`–`0017` in sync.
 
 Rules:
 - Every migration is forward-only and reviewed; no editing applied migrations.

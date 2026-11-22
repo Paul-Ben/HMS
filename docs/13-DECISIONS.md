@@ -1,6 +1,6 @@
 # Architecture Decisions and Open Questions
 
-**Status:** Draft for approval · **Version:** 0.1 · **Date:** 20 November 2026
+**Status:** Draft for approval · **Version:** 0.2 · **Date:** 22 November 2026
 
 ## Part A — Accepted decisions (proposed)
 
@@ -135,11 +135,11 @@ These are implementation defaults for local/dev work only. They are not stakehol
 - Reservation/payment/folio enums were added in `0005`/`0006` because `0002` was already applied; all enum values remain provisional.
 - Reservation references use the format `AUR-YYYY-NNNNNN`; folios, payments and receipts use `FOL`/`PAY`/`RCP` prefixes via `public.allocate_reference`.
 - Guest email/phone are indexed for dedupe but not unique because family-shared contacts are unresolved.
-- Booking, payment, ledger and views/RPCs remain schema-only until the dedicated RPC/guard migrations; do not run live booking or payment flows yet.
+- Core booking, folio, payment, ledger and views/RPCs are implemented in `0013`–`0014` and smoke-tested; live booking/payment still requires Phase 4–6 app wiring and stakeholder approval.
 - F&B and laundry/inventory were combined into one migration because recipes and bar products reference inventory items.
 - Service order references use `SORD-YYYY-NNNNNN` and laundry references use `LND-YYYY-NNNNNN`; these differ from the workflow example and are provisional.
-- Inventory stock is constrained non-negative; authorised negative-stock overrides are not supported until the conflict is resolved.
-- Service order, laundry order, status history and inventory movement tables have basic transition/append-only guards; full RPCs and stock deduction rules are still deferred.
+- Inventory stock is non-negative by default; `private.post_stock_movement()` permits negative stock only with `override_allowed = true` and a recorded reason.
+- Service order, laundry order, inventory and staff RPCs are implemented in `0015`–`0016` and smoke-tested against synthetic data.
 - Staff ops migration is numbered `0008` after the combined F&B/laundry/inventory `0007`; status enums and inferred columns (`early_minutes`, `acknowledged_by`, handover `shift_id`) are provisional.
 - Acknowledged handovers are immutable; addenda are not modelled until the addenda design is confirmed.
 - Reporting views use `security_invoker = true`; `v_notification_feed` is deferred because no notifications table exists yet.
@@ -154,3 +154,8 @@ These are implementation defaults for local/dev work only. They are not stakehol
 - `roles.manage` policies exist but remain unusable until the owner-approved role-management flow is decided.
 - `supabase/tests/rls.sql` passes 32 pgTAP assertions; RLS policy validation is complete.
 - `0012_rls_staff_permission_fix.sql` requires an active staff profile for permission-based RLS checks; guest-role permission keys no longer grant staff-level row access.
+- `0013_core_rpcs_billing.sql` and `0014_core_rpc_fixes.sql` implement core reservation/folio/payment/refund RPCs; `0014` supersedes `0013` as forward-only history.
+- `0015_operational_rpcs.sql` and `0016_inventory_staff_rpcs.sql` implement service-order, laundry, inventory and staff RPCs; synthetic smoke data proved the workflows without touching real data.
+- `0017_storage_policies.sql` adds six buckets with path-prefixed policies; storage helpers are `security definer` and room-image visibility is checked via `private.storage_room_is_public()`.
+- `supabase/tests/storage.sql` passes 15 pgTAP assertions and `supabase/tests/concurrency.sql` passes 14 pgTAP assertions, including one-winner contested-room exclusion; remote dev migrations `0001`–`0017` are in sync.
+- Migrations `0001`–`0017` were replayed cleanly on a temporary no-data Supabase project; all three pgTAP suites passed there and the temporary project was deleted.

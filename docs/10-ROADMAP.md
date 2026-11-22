@@ -1,6 +1,6 @@
 # Development Roadmap
 
-**Status:** Draft for approval · **Version:** 0.1 · **Date:** 20 November 2026
+**Status:** Draft for approval · **Version:** 0.2 · **Date:** 22 November 2026
 **Approach:** phase-gated delivery. A phase is complete only when its exit criteria are evidenced in `TASKS.md`.
 
 ## 0. Gates
@@ -9,7 +9,7 @@
 |---|---|---|
 | G0 | Requirements and architecture approved | This documentation set + owner/manager sign-off |
 | G1 | Prototype approved | `docs/14-PROTOTYPE.md` review notes resolved |
-| G2 | Backend and RLS approved | Seed database, passing pgTAP suite, schema review |
+| G2 | Backend and RLS approved | Seed database, clean migration replay, passing pgTAP suites, schema review and stakeholder sign-off |
 | G3 | Payments approved | Paystack test transactions, webhook replay tests, reconciliation |
 | G4 | UAT approved | End-to-end hotel scenario passes with seeded staff accounts |
 | G5 | Production launch | Deployment checklist signed, backups verified, monitoring live |
@@ -43,6 +43,8 @@
 - pgTAP suites for constraints and RLS.
 
 **Exit criteria:** Migrations apply cleanly from scratch; seed succeeds; concurrency test proves one winner for a contested room; RLS allow/deny suite green; G2 recorded.
+
+**Evidence (22 November 2026):** Migrations `0001`–`0017` applied from scratch on a temporary Supabase project with no copied data, then all 17 versions matched `supabase migration list`. `supabase/tests/rls.sql` passed 32 assertions, `supabase/tests/storage.sql` passed 15 assertions, and `supabase/tests/concurrency.sql` passed 14 assertions including one hold for a contested room and rejection of the second attempt. The temporary project and its local password file were deleted. This completes G2 evidence; stakeholder approval is still pending.
 
 ## Phase 4 — Application foundation
 

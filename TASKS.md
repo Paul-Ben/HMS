@@ -1,6 +1,6 @@
 # Delivery Tracker
 
-**Last updated:** 21 November 2026
+**Last updated:** 22 November 2026
 **Rules:** A task is complete only with working logic, persistence, authorisation, validation and tests. Statuses: Not Started · In Progress · Under Review · Testing · Completed · Blocked.
 
 ## Phase summary
@@ -9,7 +9,7 @@
 |---|---|---|
 | 1. Requirements and analysis | Completed (draft for approval) | Docs 01–14 produced; G0 pending stakeholder sign-off. |
 | 2. Interactive prototype | Complete · pending G1 | Public, guest and all role dashboards implemented; lint, typecheck and build pass. |
-| 3. Database and backend foundation | In Progress (local/dev) | Supabase dev project linked; migrations `0001`–`0012` applied; RLS suite green. |
+| 3. Database and backend foundation | Under Review (G2 evidence complete) | Migrations `0001`–`0017` replayed cleanly on a fresh project; RLS, storage and concurrency suites green; stakeholder G2 approval pending. |
 | 4–12 | Not Started | Gated by prototype approval (G1) and remaining credentials. |
 
 ## Phase 1 — Requirements
@@ -67,11 +67,11 @@
 | Billing, payments, ledger schema | Identity + reservations | Completed (provisional) |
 | F&B, laundry, inventory schema | Billing | Completed (provisional) |
 | Staff, attendance, handover schema | Identity | Completed (provisional) |
-| Views, RPCs, triggers, guards | Schema | In Progress (views complete) |
+| Views, RPCs, triggers, guards | Schema | Completed (`0013`–`0016` applied; synthetic operational smoke passed) |
 | Seed roles, permissions, settings, catalogs | Identity | Completed (provisional) |
 | RLS policies, staff-permission hardening and pgTAP suite | Schema + roles | Completed (32 assertions passing) |
-| Storage buckets and policies | Identity | Not Started |
-| Concurrency and idempotency tests | Holds, payments, stock | Not Started |
+| Storage buckets and policies | Identity | Completed (`0017`; 15 assertions passing) |
+| Concurrency and idempotency tests | Holds, payments, stock | Completed (14 assertions passing) |
 
 ## Phase 4 — Application foundation
 
@@ -161,10 +161,10 @@
 | Task | Dependencies | Status |
 |---|---|---|
 | Unit/component coverage targets | All features | Not Started |
-| pgTAP RLS/constraint suite | Phase 3 | In Progress (RLS complete; constraints pending) |
+| pgTAP RLS/constraint suite | Phase 3 | In Progress (RLS 32, storage 15, concurrency 14 green; full constraint matrix pending) |
 | E2E acceptance flows | All features | Not Started |
 | Payment replay/tamper tests | Phase 6 | Not Started |
-| Concurrency tests | Holds, stock, receipts | Not Started |
+| Concurrency tests | Holds, stock, receipts | In Progress (contested room, payments, bill items and stock idempotency passing) |
 | Accessibility audit | Phase 10 | Not Started |
 | Performance/load tests | Phase 9 | Not Started |
 | Secret/dependency scans | CI | Not Started |
@@ -191,7 +191,7 @@
 | 2 | Registered guest management | E2E-02 | Not Started |
 | 3 | Configurable deposits | Unit + E2E-01/09 | Not Started |
 | 4 | Pay outstanding bills anytime | E2E-01/03 | Not Started |
-| 5 | No double booking | DB concurrency test | Not Started |
+| 5 | No double booking | DB concurrency test | Completed (one hold; second attempt rejected) |
 | 6 | Check-in/out | E2E-03 | Not Started |
 | 7 | Manage rooms/floors/staff | E2E-09 | Not Started |
 | 8 | Owner executive reports | E2E-12 | Not Started |
@@ -202,16 +202,16 @@
 | 13 | Restaurant orders | E2E-05 | Not Started |
 | 14 | Bar orders | E2E-06 | Not Started |
 | 15 | Laundry orders | E2E-07 | Not Started |
-| 16 | Inventory deductions | Idempotency tests | Not Started |
+| 16 | Inventory deductions | Idempotency tests | In Progress (stock movement replay passing) |
 | 17 | Housekeeping workflow | E2E-08 | Not Started |
 | 18 | Staff attendance | E2E-10 | Not Started |
 | 19 | Shift scheduling | E2E-10 | Not Started |
 | 20 | Shift handovers | E2E-10 | Not Started |
 | 21 | Auditable financial records | Ledger/RLS tests | Not Started |
 | 22 | Downloadable daily reports | E2E-12 | Not Started |
-| 23 | Staff permissions enforced | RLS matrix suite | In Progress (core assertions passing) |
+| 23 | Staff permissions enforced | RLS matrix suite | Completed (32 assertions passing) |
 | 24 | RLS tested | pgTAP suite | Completed (32 assertions) |
-| 25 | Automated tests pass | CI | In Progress (CI configured) |
+| 25 | Automated tests pass | CI | In Progress (remote pgTAP green; local/CI Docker run pending) |
 | 26 | GitHub source available | Repo verification | Not Started |
 | 27 | Vercel production works | Production smoke | Not Started |
 | 28 | Supabase production works | Production smoke | Not Started |
